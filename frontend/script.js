@@ -21,6 +21,11 @@ const state = {
   sweepFrames: [],      // array of {t, image}
 };
 
+const FALLBACK_SAMPLE_PAIR = {
+  frame0: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAgAElEQVR4AVTB55JkR3Yu2G+79iMiIkUVRDfJtuY1m/d/lvk3ZuTlJYkGqipFxFGut09kAeDYrEWAqhCWE/4kVRoOoTIA6oBqxNBmH3tpPMreIkMXCVEAzKvgiXOFFmleYdN56QAUdJi2aQOZ3AGpEkyGqoIBUmUoJBgZd9QBAXdYydEn6gADcBEfBAOyAfMKTIWiLaLCJgCqQrYhMkAuYtoAVQFNmTqGcHlXVVXghy+ALkNLuPNywwcfTJ63/vQK6i4aZOoP77jTBcCnJeG7ITX8ThcoKqoKNrKgUgcgG3ywuQO6MYROsgGCVRUs2AfQEBjAFOv5hnEHaUrnmPDBVNb6gOVqIwDCB6EyoOq0CWqqXq42uUjdRYC6FgkDx8sVcPG02FZdHA5o2YZEAaoKkhmA",
+  frame1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAgAElEQVR4AVTB55JkR3Yu2G+79iMiIkUVRDfJtuY1m/d/lvk3ZuTlJYkGqipFxFGut09kAeDYrEWAqhCWE/4kVRoOoTIA6oBqxNBmH3tpPMreIkMXCVEAzKvgiXOFFmleYdN56QAUdJi2aQOZ3AGpEkyGqoIBUmUoJBgZd9QBAXdYydEn6gADcBEfBAOyAfMKTIWiLaLCJgCqQrYhMkAuYtoAVQFNmTqGcHlXVVXghy+ALkNLuPNywwcfTJ63/vQK6i4aZOoP77jTBcCnJeG7ITX8ThcoKqoKNrKgUgcgG3ywuQO6MYROsgGCVRUs2AfQEBjAFOv5hnEHaUrnmPDBVNb6gOVqIwDCB6EyoOq0CWqqXq42uUjdRYC6FgkDx8sVcPG02FZdHA5o2YZEAaoKkhmA"
+};
+
 const el = {
   file0: document.getElementById("file0"),
   file1: document.getElementById("file1"),
@@ -247,7 +252,23 @@ el.sampleBtn.addEventListener("click", async () => {
     refreshGenerateButton();
     setStatus("sample pair loaded.");
   } catch (e) {
-    setStatus(`could not load sample pair (${e.message})`, true);
+    const fallback = FALLBACK_SAMPLE_PAIR;
+    state.useSample = true;
+    state.file0 = null;
+    state.file1 = null;
+    el.file0.value = "";
+    el.file1.value = "";
+
+    setThumb(el.thumb0, fallback.frame0);
+    setThumb(el.thumb1, fallback.frame1);
+    el.morphFrame0.src = fallback.frame0;
+    el.morphFrame1.src = fallback.frame1;
+    el.morphFrame0.hidden = false;
+    el.morphFrame1.hidden = false;
+    setMorphPreviewVisible(true);
+    syncMorphPreview();
+    refreshGenerateButton();
+    setStatus("sample pair loaded from built-in fallback.");
   }
 });
 
