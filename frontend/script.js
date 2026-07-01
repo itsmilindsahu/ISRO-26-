@@ -3,9 +3,15 @@
    Uses the current page origin when hosted together, or localhost for file-based preview.
    ============================================================ */
 
-const API_BASE = window.location.protocol === "file:"
-  ? "http://localhost:5000"
-  : window.location.origin;
+const API_BASE = (() => {
+  const configured = window.__APP_CONFIG__?.API_BASE_URL;
+  if (configured) return configured;
+  if (window.location.protocol === "file:") return "http://localhost:5000";
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:5000";
+  }
+  return "/api";
+})();
 
 const state = {
   file0: null,          // File object, when user uploads
