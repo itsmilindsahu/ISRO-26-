@@ -26,11 +26,13 @@ const FALLBACK_SAMPLE_PAIR = {
   frame1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAgAElEQVR4AVTB55JkR3Yu2G+79iMiIkUVRDfJtuY1m/d/lvk3ZuTlJYkGqipFxFGut09kAeDYrEWAqhCWE/4kVRoOoTIA6oBqxNBmH3tpPMreIkMXCVEAzKvgiXOFFmleYdN56QAUdJi2aQOZ3AGpEkyGqoIBUmUoJBgZd9QBAXdYydEn6gADcBEfBAOyAfMKTIWiLaLCJgCqQrYhMkAuYtoAVQFNmTqGcHlXVVXghy+ALkNLuPNywwcfTJ63/vQK6i4aZOoP77jTBcCnJeG7ITX8ThcoKqoKNrKgUgcgG3ywuQO6MYROsgGCVRUs2AfQEBjAFOv5hnEHaUrnmPDBVNb6gOVqIwDCB6EyoOq0CWqqXq42uUjdRYC6FgkDx8sVcPG02FZdHA5o2YZEAaoKkhmA"
 };
 
+// Fallback interpolation result - loaded dynamically from JSON file
 let FALLBACK_INTERPOLATION_RESULT = null;
-(async () => {
-  try {
-    const res = await fetch('/fallback_interp.json');
-    const data = await res.json();
+
+// Load fallback data asynchronously
+fetch('./fallback_interp.json')
+  .then(r => r.json())
+  .then(data => {
     FALLBACK_INTERPOLATION_RESULT = {
       t: 0.5,
       interpolated: data.interpolated,
@@ -41,10 +43,21 @@ let FALLBACK_INTERPOLATION_RESULT = null;
       },
       has_metrics: false
     };
-  } catch (e) {
-    console.log('Fallback interpolation data not available');
-  }
-})();
+  })
+  .catch(() => {
+    // If fallback JSON fails, create a simple placeholder
+    const placeholder = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    FALLBACK_INTERPOLATION_RESULT = {
+      t: 0.5,
+      interpolated: placeholder,
+      methods: {
+        linear_blend: { image: placeholder },
+        flow_only_warp: { image: placeholder },
+        hybrid_ot: { image: placeholder }
+      },
+      has_metrics: false
+    };
+  });
 
 const el = {
   file0: document.getElementById("file0"),
@@ -358,6 +371,8 @@ el.generateBtn.addEventListener("click", async () => {
     state.hasZip = true;
     el.downloadBtn.disabled = false;
   } catch (e) {
+    // Wait a moment for fallback to load, then try to use it
+    await new Promise(r => setTimeout(r, 500));
     if (FALLBACK_INTERPOLATION_RESULT) {
       const fallback = { ...FALLBACK_INTERPOLATION_RESULT, t };
       renderResult(fallback);
