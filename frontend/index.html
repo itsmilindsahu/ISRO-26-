@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patterns · Satellite Frame Interpolation</title>
+<link rel="icon" href="./1782666675090-logopatterns.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-row">
+      <div class="brand-identity">
+        <img class="brand-mark" src="./1782666675090-logopatterns.svg" alt="logopatterns logo">
+        <div>
+          <h1><strong>Patterns</strong></h1>
+          <div class="brand-subtitle">Satellite Frame Interpolation</div>
+        </div>
+      </div>
+      <span class="tag">flow-warp + Wasserstein-barycenter hybrid</span>
+    </div>
+    <p class="sub">Upload two consecutive satellite frames and interpolate a synthetic frame at any point <span class="mono">t</span> between them.</p>
+  </header>
+
+  <main>
+
+    <!-- ================= INPUT SECTION ================= -->
+    <section class="panel" id="input-panel">
+      <div class="panel-head">
+        <h2>01 — Input Frames</h2>
+        <button id="sample-btn" class="btn btn-outline">Load sample pair</button>
+      </div>
+
+      <div class="upload-row">
+        <div class="upload-slot" id="slot0">
+          <div class="thumb" id="thumb0">
+            <span class="placeholder">no frame</span>
+          </div>
+          <label class="upload-label" for="file0">frame0</label>
+          <input type="file" id="file0" accept="image/*" hidden>
+          <button class="btn btn-outline btn-small" data-target="file0">choose file</button>
+        </div>
+
+        <div class="upload-slot" id="slot1">
+          <div class="thumb" id="thumb1">
+            <span class="placeholder">no frame</span>
+          </div>
+          <label class="upload-label" for="file1">frame1</label>
+          <input type="file" id="file1" accept="image/*" hidden>
+          <button class="btn btn-outline btn-small" data-target="file1">choose file</button>
+        </div>
+      </div>
+
+      <div class="morph-panel">
+        <div class="morph-header">
+          <label class="t-label" for="morph-slider">input motion preview</label>
+          <button id="morph-toggle" class="btn btn-outline btn-small">show crossfade</button>
+        </div>
+        <div class="morph-preview" id="morph-preview">
+          <img id="morph-frame0" alt="frame0 preview" hidden>
+          <img id="morph-frame1" alt="frame1 preview" hidden>
+          <span class="placeholder">load frame0 and frame1 to preview motion</span>
+        </div>
+        <input type="range" id="morph-slider" min="0" max="1" step="0.01" value="0.5" disabled>
+      </div>
+
+      <div class="control-row reg-control">
+        <label class="t-label" for="reg-slider">regularization = <span id="reg-value" class="mono">0.004</span></label>
+        <div class="slider-row">
+          <span class="slider-label">sharper</span>
+          <input type="range" id="reg-slider" min="0.001" max="0.02" step="0.001" value="0.004">
+          <span class="slider-label">smoother</span>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label class="t-label" for="t-slider">t = <span id="t-value" class="mono">0.50</span></label>
+        <input type="range" id="t-slider" min="0" max="1" step="0.05" value="0.5">
+        <div class="t-scale">
+          <span>0.0</span><span>0.5</span><span>1.0</span>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="generate-btn" class="btn btn-solid">Generate Interpolated Frame</button>
+        <button id="sweep-btn" class="btn btn-outline">Generate Full Sweep</button>
+        <button id="clear-btn" class="btn btn-ghost">Reset</button>
+        <span id="status-msg" class="status"></span>
+      </div>
+
+      <div class="progress-row" id="progress-row" hidden>
+        <div class="progress-spinner" aria-hidden="true"></div>
+        <div class="progress-copy">
+          <div id="progress-step" class="progress-step">preparing request…</div>
+          <div id="progress-sub" class="progress-sub">The hybrid pipeline runs optical flow and OT refinement.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESULT SECTION ================= -->
+    <section class="panel" id="result-panel">
+      <div class="panel-head">
+        <h2>02 — Result</h2>
+      </div>
+
+      <div class="triplet-row">
+        <figure class="frame-card">
+          <div class="thumb" id="res-thumb0"><span class="placeholder">—</span></div>
+          <figcaption>frame0</figcaption>
+        </figure>
+        <figure class="frame-card highlight">
+          <div class="thumb" id="res-thumb-mid"><span class="placeholder">—</span></div>
+          <figcaption>interpolated (<span id="res-t" class="mono">t=0.50</span>)</figcaption>
+        </figure>
+        <figure class="frame-card">
+          <div class="thumb" id="res-thumb1"><span class="placeholder">—</span></div>
+          <figcaption>frame1</figcaption>
+        </figure>
+      </div>
+
+      <div class="sweep-panel" id="sweep-panel" hidden>
+        <div class="sweep-head">
+          <h3>full sweep</h3>
+          <span class="sweep-note">scrub t = 0.0 … 1.0</span>
+        </div>
+        <div class="sweep-strip" id="sweep-strip"></div>
+        <div class="sweep-main">
+          <img id="sweep-main-img" alt="full sweep preview" hidden>
+        </div>
+        <input type="range" id="sweep-slider" min="0" max="10" step="1" value="0" disabled>
+      </div>
+    </section>
+
+    <!-- ================= HEATMAP SECTION ================= -->
+    <section class="panel" id="heatmap-panel" hidden>
+      <div class="panel-head">
+        <h2>03 — Ground-Truth Differences</h2>
+      </div>
+      <div class="heatmap-row" id="heatmap-row"></div>
+    </section>
+
+    <!-- ================= COMPARISON SECTION ================= -->
+    <section class="panel" id="compare-panel">
+      <div class="panel-head">
+        <h2>04 — Method Comparison</h2>
+        <button id="download-btn" class="btn btn-outline" disabled>Download PNGs + metrics.txt</button>
+      </div>
+
+      <div class="compare-row" id="compare-row">
+        <figure class="method-card" data-method="linear_blend">
+          <div class="thumb"><span class="placeholder">—</span></div>
+          <figcaption>
+            <span class="method-name">linear blend</span>
+            <span class="method-metrics mono" data-metric="primary">—</span>
+            <span class="method-hint">ground-truth metrics appear here when available</span>
+          </figcaption>
+        </figure>
+        <figure class="method-card" data-method="flow_only_warp">
+          <div class="thumb"><span class="placeholder">—</span></div>
+          <figcaption>
+            <span class="method-name">optical-flow warp</span>
+            <span class="method-metrics mono" data-metric="primary">—</span>
+            <span class="method-hint">ground-truth metrics appear here when available</span>
+          </figcaption>
+        </figure>
+        <figure class="method-card" data-method="hybrid_ot">
+          <div class="thumb"><span class="placeholder">—</span></div>
+          <figcaption>
+            <span class="method-name">ot-hybrid</span>
+            <span class="method-metrics mono" data-metric="primary">—</span>
+            <span class="method-hint">ground-truth metrics appear here when available</span>
+          </figcaption>
+        </figure>
+      </div>
+      <p class="metrics-note" id="metrics-note">For this demo, SSIM is emphasized because it better reflects structural preservation than a raw pixel average.</p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <span class="brand-footer">Built by Patterns</span>
+    <span class="dot">·</span>
+    <span>backend: <span class="mono">http://localhost:5000</span></span>
+    <span class="dot">·</span>
+    <span id="backend-status" class="mono">checking backend…</span>
+  </footer>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button id="lightbox-close" class="lightbox-close" aria-label="Close preview">×</button>
+    <img id="lightbox-img" alt="zoomed preview">
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
