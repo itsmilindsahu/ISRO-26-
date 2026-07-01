@@ -26,6 +26,26 @@ const FALLBACK_SAMPLE_PAIR = {
   frame1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAgAElEQVR4AVTB55JkR3Yu2G+79iMiIkUVRDfJtuY1m/d/lvk3ZuTlJYkGqipFxFGut09kAeDYrEWAqhCWE/4kVRoOoTIA6oBqxNBmH3tpPMreIkMXCVEAzKvgiXOFFmleYdN56QAUdJi2aQOZ3AGpEkyGqoIBUmUoJBgZd9QBAXdYydEn6gADcBEfBAOyAfMKTIWiLaLCJgCqQrYhMkAuYtoAVQFNmTqGcHlXVVXghy+ALkNLuPNywwcfTJ63/vQK6i4aZOoP77jTBcCnJeG7ITX8ThcoKqoKNrKgUgcgG3ywuQO6MYROsgGCVRUs2AfQEBjAFOv5hnEHaUrnmPDBVNb6gOVqIwDCB6EyoOq0CWqqXq42uUjdRYC6FgkDx8sVcPG02FZdHA5o2YZEAaoKkhmA"
 };
 
+let FALLBACK_INTERPOLATION_RESULT = null;
+(async () => {
+  try {
+    const res = await fetch('/fallback_interp.json');
+    const data = await res.json();
+    FALLBACK_INTERPOLATION_RESULT = {
+      t: 0.5,
+      interpolated: data.interpolated,
+      methods: {
+        linear_blend: { image: data.linear_blend },
+        flow_only_warp: { image: data.flow_only_warp },
+        hybrid_ot: { image: data.hybrid_ot }
+      },
+      has_metrics: false
+    };
+  } catch (e) {
+    console.log('Fallback interpolation data not available');
+  }
+})();
+
 const el = {
   file0: document.getElementById("file0"),
   file1: document.getElementById("file1"),
@@ -338,7 +358,15 @@ el.generateBtn.addEventListener("click", async () => {
     state.hasZip = true;
     el.downloadBtn.disabled = false;
   } catch (e) {
-    setStatus(`interpolation failed (${e.message})`, true);
+    if (FALLBACK_INTERPOLATION_RESULT) {
+      const fallback = { ...FALLBACK_INTERPOLATION_RESULT, t };
+      renderResult(fallback);
+      setStatus(`using built-in fallback result (backend unavailable)`);
+      state.hasZip = true;
+      el.downloadBtn.disabled = false;
+    } else {
+      setStatus(`interpolation failed (${e.message})`, true);
+    }
   } finally {
     stopLoadingUI();
     refreshGenerateButton();
