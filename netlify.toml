@@ -1,0 +1,9 @@
+[build]
+  command = ""
+  publish = "frontend"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR_RENDER_BACKEND_URL/:splat"
+  status = 200
