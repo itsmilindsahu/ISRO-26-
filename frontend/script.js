@@ -26,38 +26,10 @@ const FALLBACK_SAMPLE_PAIR = {
   frame1: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAgAElEQVR4AVTB55JkR3Yu2G+79iMiIkUVRDfJtuY1m/d/lvk3ZuTlJYkGqipFxFGut09kAeDYrEWAqhCWE/4kVRoOoTIA6oBqxNBmH3tpPMreIkMXCVEAzKvgiXOFFmleYdN56QAUdJi2aQOZ3AGpEkyGqoIBUmUoJBgZd9QBAXdYydEn6gADcBEfBAOyAfMKTIWiLaLCJgCqQrYhMkAuYtoAVQFNmTqGcHlXVVXghy+ALkNLuPNywwcfTJ63/vQK6i4aZOoP77jTBcCnJeG7ITX8ThcoKqoKNrKgUgcgG3ywuQO6MYROsgGCVRUs2AfQEBjAFOv5hnEHaUrnmPDBVNb6gOVqIwDCB6EyoOq0CWqqXq42uUjdRYC6FgkDx8sVcPG02FZdHA5o2YZEAaoKkhmA"
 };
 
-// Fallback interpolation result - loaded dynamically from JSON file
-let FALLBACK_INTERPOLATION_RESULT = null;
-
-// Load fallback data asynchronously
-fetch('./fallback_interp.json')
-  .then(r => r.json())
-  .then(data => {
-    FALLBACK_INTERPOLATION_RESULT = {
-      t: 0.5,
-      interpolated: data.interpolated,
-      methods: {
-        linear_blend: { image: data.linear_blend },
-        flow_only_warp: { image: data.flow_only_warp },
-        hybrid_ot: { image: data.hybrid_ot }
-      },
-      has_metrics: false
-    };
-  })
-  .catch(() => {
-    // If fallback JSON fails, create a simple placeholder
-    const placeholder = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-    FALLBACK_INTERPOLATION_RESULT = {
-      t: 0.5,
-      interpolated: placeholder,
-      methods: {
-        linear_blend: { image: placeholder },
-        flow_only_warp: { image: placeholder },
-        hybrid_ot: { image: placeholder }
-      },
-      has_metrics: false
-    };
-  });
+// Fallback interpolation result - embedded directly for instant loading
+const FALLBACK_INTERPOLATION_RESULT = {
+  t: 0.5,
+  interpolated: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAZCklEQVR4AdXBAWIbu7YtycwNcP7jFVnAalQVKVG2bEvH8vt9I5QH+W7h1+Q3wp38QrhTDvI/J+yURf4XhUUB+R8VUJD/VQEF+Z8VFPkfFkWeSPi/JW/CV0XlQV6FX5KH8AN5CJ8k74XfkLvwEJU7eSd8QH4SdvKD8Anys/AB+UG4UznJD8JP5AvCH8jHwjP5UDhZnORn4T35kvBb8kvhTn4lnCxO8oHwTL4o/I78jXCyOMkHwjP5ovAb8nfCweIkHwjP5IvC78hfCQeLg3wkPJMvCr8jfyUcLA7ykfBMvij8jvyVcLA4yIfCG/mq8FvyN8LB4iAfCm/kq8LvyV8IB4uDfCzcydeF35O/EA4WB/mVgPxH4ffkQ+EgvxMOFgf5J8Lvyc/CG/mVcLI4yL8Rfk/eCz+SD4WTxUH+lfBb8iR8TH4SThYH+XfC78ku/I78IJwsDvJPhb8mz8KdxUH+sfDX5E24szjIfyM/CL8W/o48hAeLg3yR/E74hfA35BReWRzk8+Qzwi+EvyBLeBWLg3yO/EDeC0/Cx8J3icVOPkOeyS+Fh/Cx8D1isZM/kifySt4Jd+EufCR8i1js5A/kldzJr4RDOIWPhG8Qi538ljzISQ7ygbALu3AIHwh/LxaL/I48yEEW2cmPwi4sYQmH8LPw12KxyK/Jg+xkkUUW+UFYAgQISziEn4S/FCwW+SW5k0UWAQFZ5AdhCQQIECAcwg/CXwoWi/yC3MkiICAgCMgid2EJEAgEAgQIh/Be+DvBYpGPyUkWAQFBEAQBeRYIBAIhECBAOIR3wl8JFot8SE6yCIIgiCAIAvIQIBACIYRAIEA4hHfC3wgWi3xA7gQEBBFERARBQE4BAiGEEEIIBAKEQ3gW/kKwAPmA3AkIgoigiIgIAnIKEEIIISGEEAIBwiE8C/9dsAD5mZxkEUQQUUQRERHkIRBCCAkJCSGEQICwC8/CfxYsQH4iJwFBEBFFFEVRBEF2AUJISEhCEhJCCAQIu/As/EcBC5AfyUlAEEQURUVFUUTkVQgJSciOLIQEQoCwC8/CfxOwAPmBnAQEERFFxQMqioLcBRKSkDckIYQQIOzCs/CfBCxA3pOTgCAiiooPeEBEHkJCfkZCCAHCLjwL/0XAAuQdOQkIIqL4ARQF2YUQcjezzJxICCFA2IVn4b8IFiDP5CQgiIiKr8pniJxCyN1MZjKzzIQkhBAg7MKz8B8EC5BnchIQEVHxUC6llq8QOYSEJDPJzMzMTGYeCCFA2IVn4euCBcgTOQmIiKi4lFpqWVpquaDIISRhJpmZmTMzMzMzd4QQIOzCs/BlwQLkjZwEBFFU1FJLy7IsLcs75BASMpOZmTln5pyZMzN3hBAg7MKT8GXBAuSV3AmCiIpLqWVZllWWZVkeEIEQsszMzEPmLjMzdwQChF14Er4qWIC8kpOAiCgeSsuyyqqyyirL8oAccpoz8zDmITMzmSEJgUA4hCfhi4IFyIOcBARFPJWWVVaVtbOqLMsDsoTs5sxcxpxzzDnHzJwzmUlICAHCIbwJXxQsQO7kThBE8a4sy3piLZaloiwhy8zcjTnHHHPMOcfMnJnZEUKAsAtPwtcEC+RO7gRERFFLLausN60OluUOgZBlZs455hxjjjHHHHOOOTNnTgQChF14E74mWCB3cicIongorbIeWlW1erBckCW7mTnHHHOMOXZzzDGXzMyEhBAgHMKb8DWxQE5yJyAiPpRV1tKqqlW1alWtTpYLu5DMzDnHHG/mGHOOzJmZhQQChF14E74mFshBHgREFHelZd21qlatWrVW1epgqQghy1zGHMs2xtjGbo65ZOZAIEDYhTfhS2KBHOROQFC8K8s6tKpWrVVr1Vq1alXNKktll2TuxhzbGGMb29jGYY45Z2YWQggQduFN+JJYyEEe [truncated by system at 2000 chars]
 
 const el = {
   file0: document.getElementById("file0"),
@@ -371,17 +343,12 @@ el.generateBtn.addEventListener("click", async () => {
     state.hasZip = true;
     el.downloadBtn.disabled = false;
   } catch (e) {
-    // Wait a moment for fallback to load, then try to use it
-    await new Promise(r => setTimeout(r, 500));
-    if (FALLBACK_INTERPOLATION_RESULT) {
-      const fallback = { ...FALLBACK_INTERPOLATION_RESULT, t };
-      renderResult(fallback);
-      setStatus(`using built-in fallback result (backend unavailable)`);
-      state.hasZip = true;
-      el.downloadBtn.disabled = false;
-    } else {
-      setStatus(`interpolation failed (${e.message})`, true);
-    }
+    // Use embedded fallback result instantly
+    const fallback = { ...FALLBACK_INTERPOLATION_RESULT, t };
+    renderResult(fallback);
+    setStatus(`using built-in fallback result (backend unavailable)`);
+    state.hasZip = true;
+    el.downloadBtn.disabled = false;
   } finally {
     stopLoadingUI();
     refreshGenerateButton();
