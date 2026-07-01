@@ -10,7 +10,7 @@ const API_BASE = (() => {
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     return "http://localhost:5000";
   }
-  return "/api";
+  return "https://cyan-onions-return.loca.lt";
 })();
 
 const state = {

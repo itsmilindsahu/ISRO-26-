@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 backend/_last_run/
 .DS_Store
+
+# Local Netlify folder
+.netlify
